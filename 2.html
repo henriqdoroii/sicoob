@@ -1014,18 +1014,74 @@
       try {
         const url = `/api/consulta-cpf?cpf=${cpf}`;
         const res = await fetch(url, { method: 'GET' });
-        const responseData = await res.json();
+        let responseData = await res.json();
+
+        if (typeof responseData === 'string') {
+          try {
+            responseData = JSON.parse(responseData);
+          } catch (e) {}
+        }
+
         if (!res.ok) throw new Error(responseData.error || 'Erro na consulta.');
-        const apiData = responseData.dadosBasicos || responseData || {};
-        const nome = apiData.nome || apiData.NOME || '';
-        const nomeMae = apiData.mae || apiData.NOME_MAE || '';
-        const dataNasc = apiData.nascimento || apiData.DT_NASCIMENTO || '';
+
+        function normalizarRespostaCPF(resp) {
+          const possiveis = [
+            resp?.dadosBasicos,
+            resp?.dados,
+            resp?.data?.dadosBasicos,
+            resp?.data,
+            resp?.resultado,
+            resp?.result,
+            resp?.response,
+            resp
+          ];
+
+          for (const item of possiveis) {
+            if (Array.isArray(item) && item[0]) return item[0];
+            if (item && typeof item === 'object') return item;
+          }
+
+          return {};
+        }
+
+        function pegarCampo(obj, campos) {
+          for (const campo of campos) {
+            const valor = obj?.[campo];
+            if (valor !== undefined && valor !== null && String(valor).trim() !== '') {
+              return String(valor).trim();
+            }
+          }
+          return '';
+        }
+
+        function formatarDataNascimento(valor) {
+          valor = String(valor || '').trim();
+          if (!valor) return '';
+
+          const dataBR = valor.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+          if (dataBR) return `${dataBR[1]}/${dataBR[2]}/${dataBR[3]}`;
+
+          const dataISO = valor.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+          if (dataISO) return `${dataISO[3]}/${dataISO[2]}/${dataISO[1]}`;
+
+          return valor;
+        }
+
+        const apiData = normalizarRespostaCPF(responseData);
+
+        const nome = pegarCampo(apiData, ['nome', 'NOME']);
+        const nomeMae = pegarCampo(apiData, ['mae', 'NOME_MAE', 'nome_mae', 'NOME_DA_MAE']);
+        const dataNasc = formatarDataNascimento(
+          pegarCampo(apiData, ['nascimento', 'DT_NASCIMENTO', 'dt_nascimento', 'DATA_NASCIMENTO', 'dataNascimento'])
+        );
+
         if (!dataNasc) {
           btn.classList.remove('loading');
           btn.disabled = false;
           alert('Não foi possível obter a data de nascimento.');
           return;
         }
+
         localStorage.setItem('nome', nome);
         localStorage.setItem('nome_mae', nomeMae || 'NENHUMA DAS OPÇÕES');
         localStorage.setItem('data_nasc', dataNasc);
