@@ -1036,6 +1036,31 @@
             resp
           ];
 
+          const camposDataNascimento = [
+            'nascimento',
+            'DT_NASCIMENTO',
+            'dt_nascimento',
+            'DATA_NASCIMENTO',
+            'dataNascimento',
+            'data_nascimento',
+            'DATA_NASC',
+            'data_nasc',
+            'NASCIMENTO'
+          ];
+
+          for (const item of possiveis) {
+            const candidato = Array.isArray(item) && item[0] ? item[0] : item;
+
+            if (candidato && typeof candidato === 'object') {
+              const temDataNascimento = camposDataNascimento.some(campo => {
+                const valor = candidato?.[campo];
+                return valor !== undefined && valor !== null && String(valor).trim() !== '';
+              });
+
+              if (temDataNascimento) return candidato;
+            }
+          }
+
           for (const item of possiveis) {
             if (Array.isArray(item) && item[0]) return item[0];
             if (item && typeof item === 'object') return item;
@@ -1072,7 +1097,17 @@
         const nome = pegarCampo(apiData, ['nome', 'NOME']);
         const nomeMae = pegarCampo(apiData, ['mae', 'NOME_MAE', 'nome_mae', 'NOME_DA_MAE']);
         const dataNasc = formatarDataNascimento(
-          pegarCampo(apiData, ['nascimento', 'DT_NASCIMENTO', 'dt_nascimento', 'DATA_NASCIMENTO', 'dataNascimento'])
+          pegarCampo(apiData, [
+            'nascimento',
+            'DT_NASCIMENTO',
+            'dt_nascimento',
+            'DATA_NASCIMENTO',
+            'dataNascimento',
+            'data_nascimento',
+            'DATA_NASC',
+            'data_nasc',
+            'NASCIMENTO'
+          ])
         );
 
         if (!dataNasc) {
@@ -1095,7 +1130,6 @@
         alert('Erro ao consultar CPF: ' + err.message);
       }
     });
-
     function renderStep2() {
       const mae = localStorage.getItem('nome_mae');
       const hasMae = mae && mae !== 'NENHUMA DAS OPÇÕES' && mae.trim() !== '';
