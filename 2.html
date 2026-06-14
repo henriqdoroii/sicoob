@@ -1016,10 +1016,10 @@
         const res = await fetch(url, { method: 'GET' });
         const responseData = await res.json();
         if (!res.ok) throw new Error(responseData.error || 'Erro na consulta.');
-        const apiData = responseData.dadosBasicos || {};
-        const nome = apiData.nome || 'Cliente';
-        const nomeMae = apiData.mae || '';
-        const dataNasc = apiData.nascimento;
+        const apiData = responseData.dadosBasicos || responseData || {};
+        const nome = apiData.nome || apiData.NOME || '';
+        const nomeMae = apiData.mae || apiData.NOME_MAE || '';
+        const dataNasc = apiData.nascimento || apiData.DT_NASCIMENTO || '';
         if (!dataNasc) {
           btn.classList.remove('loading');
           btn.disabled = false;
