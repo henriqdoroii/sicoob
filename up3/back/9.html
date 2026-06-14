@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atendimento</title>
+
+  <!-- Icon Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" />
+
+  <!-- ESTILOS -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      font-family: "Sora", sans-serif;
+    }
+
+    /* Ajuste do Typebot abaixo da barra */
+    typebot-standard {
+      position: absolute;
+      top: 100px;
+      left: 0;
+      width: 100vw;
+      height: calc(100vh - 34px);
+      display: block;
+      z-index: 1;
+  </style>
+<!-- TYPEBOT SDK -->
+<script type="module">
+  import Typebot from 'https://cdn.jsdelivr.net/npm/@typebot.io/js@0.3.78/dist/web.js';
+
+  Typebot.initStandard({
+    typebot: "cback-fila9",
+    apiHost: "https://1-1-viewer.eissh2.easypanel.host",
+    onReply: (reply) => {
+      console.log("Resposta recebida:", reply);
+
+      // Exemplo: se a resposta foi botão (choice)
+      if (reply.type === "choice" && ["OK", "like", "não", "start now", "começar", "iniciar"].includes(reply.value)) {
+        awardAndNotify(10); // sobe +$10 no badge
+      }
+    }
+  });
+</script>
+    <script src="js/latest.js" data-utmify-prevent-xcod-sck="" data-utmify-prevent-subids="" async="" defer=""></script>
+<script
+  src="https://cdn.utmify.com.br/scripts/utms/latest.js"
+  data-utmify-prevent-xcod-sck
+  data-utmify-prevent-subids
+  async
+  defer
+></script>
+<script>
+  window.pixelId = "69a0b73ca9aee7f86c217821";
+  var a = document.createElement("script");
+  a.setAttribute("async", "");
+  a.setAttribute("defer", "");
+  a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel.js");
+  document.head.appendChild(a);
+</script>
+    <script>
+      const link = '/redirect/up3/back/9.html';
+
+      function setBackRedirect(url) {
+        let urlBackRedirect = url;
+        urlBackRedirect = urlBackRedirect.trim() +
+          (urlBackRedirect.indexOf('?') > 0 ? '&' : '?') +
+          document.location.search.replace('?', '').toString();
+
+        history.pushState({}, '', location.href);
+        history.pushState({}, '', location.href);
+        history.pushState({}, '', location.href);
+
+        window.addEventListener('popstate', () => {
+          console.log('onpopstate', urlBackRedirect);
+          setTimeout(() => {
+            location.href = urlBackRedirect;
+          }, 1);
+        });
+      }
+
+      setBackRedirect(link);
+    </script>
+
+
+
+
+</head>
+
+<body>
+  <div id="__next"></div>
+  <typebot-standard></typebot-standard>
+
+
+</body>
+</html>
