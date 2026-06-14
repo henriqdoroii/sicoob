@@ -1,75 +1,170 @@
-// /api/proxy.js
-// Backend Vercel para consultar CPF sem expor token no front-end.
-// Front chama: /api/proxy?cpf=00000000000
+// /api/consulta-cpf.js
 
 function onlyDigits(value = "") {
   return String(value).replace(/\D/g, "");
 }
 
-function isValidCpf(cpf) {
-  cpf = onlyDigits(cpf);
+function parseJsonSafe(value) {
+  if (typeof value !== "string") return value;
 
-  if (cpf.length !== 11) return false;
-  if (/^(\d)\1{10}$/.test(cpf)) return false;
+  try {
+    const parsed = JSON.parse(value);
 
-  let sum = 0;
-  for (let i = 0; i < 9; i++) {
-    sum += Number(cpf[i]) * (10 - i);
+    if (typeof parsed === "string") {
+      try {
+        return JSON.parse(parsed);
+      } catch {
+        return parsed;
+      }
+    }
+
+    return parsed;
+  } catch {
+    return value;
   }
-
-  let digit1 = 11 - (sum % 11);
-  if (digit1 >= 10) digit1 = 0;
-  if (digit1 !== Number(cpf[9])) return false;
-
-  sum = 0;
-  for (let i = 0; i < 10; i++) {
-    sum += Number(cpf[i]) * (11 - i);
-  }
-
-  let digit2 = 11 - (sum % 11);
-  if (digit2 >= 10) digit2 = 0;
-
-  return digit2 === Number(cpf[10]);
 }
 
-function pick(obj, keys) {
-  for (const key of keys) {
-    if (obj && obj[key] !== undefined && obj[key] !== null && obj[key] !== "") {
-      return obj[key];
+function formatarDataNascimento(valor) {
+  valor = String(valor || "").trim();
+
+  if (!valor) return "";
+
+  const dataBR = valor.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+  if (dataBR) {
+    return `${dataBR[1]}/${dataBR[2]}/${dataBR[3]}`;
+  }
+
+  const dataISO = valor.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+  if (dataISO) {
+    return `${dataISO[3]}/${dataISO[2]}/${dataISO[1]}`;
+  }
+
+  return valor;
+}
+
+function pegarCampo(obj, campos) {
+  if (!obj || typeof obj !== "object") return "";
+
+  for (const campo of campos) {
+    if (
+      obj[campo] !== undefined &&
+      obj[campo] !== null &&
+      String(obj[campo]).trim() !== ""
+    ) {
+      return String(obj[campo]).trim();
     }
   }
+
   return "";
 }
 
-function normalizeApiResponse(data) {
-  const base =
-    data?.dadosBasicos ||
-    data?.dados_basicos ||
-    data?.data?.dadosBasicos ||
-    data?.data?.dados_basicos ||
-    data?.result?.dadosBasicos ||
-    data?.resultado?.dadosBasicos ||
-    data?.data ||
-    data;
+function encontrarObjetoComDados(data) {
+  data = parseJsonSafe(data);
+
+  if (!data) return {};
+
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const encontrado = encontrarObjetoComDados(item);
+      if (encontrado && Object.keys(encontrado).length > 0) return encontrado;
+    }
+
+    return {};
+  }
+
+  if (typeof data === "object") {
+    const temNascimento =
+      pegarCampo(data, [
+        "nascimento",
+        "DT_NASCIMENTO",
+        "dt_nascimento",
+        "DATA_NASCIMENTO",
+        "dataNascimento",
+        "data_nascimento",
+        "DATA_NASC",
+        "data_nasc",
+        "NASCIMENTO"
+      ]) !== "";
+
+    const temNome =
+      pegarCampo(data, [
+        "nome",
+        "NOME",
+        "name"
+      ]) !== "";
+
+    if (temNascimento || temNome) {
+      return data;
+    }
+
+    const possiveis = [
+      data?.dadosBasicos,
+      data?.dados,
+      data?.data?.dadosBasicos,
+      data?.data,
+      data?.resultado,
+      data?.result,
+      data?.response,
+      data?.body
+    ];
+
+    for (const item of possiveis) {
+      const encontrado = encontrarObjetoComDados(item);
+      if (encontrado && Object.keys(encontrado).length > 0) return encontrado;
+    }
+
+    for (const value of Object.values(data)) {
+      const encontrado = encontrarObjetoComDados(value);
+      if (encontrado && Object.keys(encontrado).length > 0) return encontrado;
+    }
+  }
+
+  return {};
+}
+
+function normalizarCPF(data) {
+  const base = encontrarObjetoComDados(data);
+
+  const nome = pegarCampo(base, [
+    "nome",
+    "NOME",
+    "name"
+  ]);
+
+  const nomeMae = pegarCampo(base, [
+    "mae",
+    "MAE",
+    "nomeMae",
+    "nome_mae",
+    "NOME_MAE",
+    "NOME_DA_MAE",
+    "MAE_NOME"
+  ]);
+
+  const nascimento = formatarDataNascimento(
+    pegarCampo(base, [
+      "nascimento",
+      "DT_NASCIMENTO",
+      "dt_nascimento",
+      "DATA_NASCIMENTO",
+      "dataNascimento",
+      "data_nascimento",
+      "DATA_NASC",
+      "data_nasc",
+      "NASCIMENTO"
+    ])
+  );
 
   return {
     dadosBasicos: {
-      nome: pick(base, ["nome", "NOME", "name"]) || "Cliente",
-      mae: pick(base, ["mae", "nomeMae", "nome_mae", "NOME_MAE", "mae_nome"]),
-      nascimento: pick(base, [
-        "nascimento",
-        "dataNascimento",
-        "data_nascimento",
-        "DATA_NASCIMENTO",
-        "nasc",
-        "dtNascimento",
-      ]),
-    },
+      nome: nome || "Cliente",
+      mae: nomeMae || "",
+      nascimento
+    }
   };
 }
 
 export default async function handler(req, res) {
-  // CORS opcional
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -80,7 +175,7 @@ export default async function handler(req, res) {
 
   if (req.method !== "GET") {
     return res.status(405).json({
-      error: "Método não permitido. Use GET.",
+      error: "Método não permitido. Use GET."
     });
   }
 
@@ -88,13 +183,7 @@ export default async function handler(req, res) {
 
   if (!cpf || cpf.length !== 11) {
     return res.status(400).json({
-      error: "CPF inválido. Envie 11 dígitos.",
-    });
-  }
-
-  if (!isValidCpf(cpf)) {
-    return res.status(400).json({
-      error: "CPF inválido.",
+      error: "CPF inválido. Envie 11 dígitos."
     });
   }
 
@@ -102,7 +191,7 @@ export default async function handler(req, res) {
 
   if (!token) {
     return res.status(500).json({
-      error: "Token da API não configurado no servidor.",
+      error: "Token da API não configurado no servidor."
     });
   }
 
@@ -110,55 +199,37 @@ export default async function handler(req, res) {
   apiUrl.searchParams.set("cpf", cpf);
   apiUrl.searchParams.set("token", token);
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
-
   try {
     const apiRes = await fetch(apiUrl.toString(), {
       method: "GET",
       headers: {
-        Accept: "application/json",
-      },
-      signal: controller.signal,
+        Accept: "application/json"
+      }
     });
 
-    clearTimeout(timeout);
-
-    let data;
-    try {
-      data = await apiRes.json();
-    } catch {
-      return res.status(502).json({
-        error: "A API de CPF retornou uma resposta inválida.",
-      });
-    }
+    const rawText = await apiRes.text();
+    const data = parseJsonSafe(rawText);
 
     if (!apiRes.ok) {
       return res.status(apiRes.status).json({
-        error: data?.error || data?.message || "Erro na consulta de CPF.",
+        error: data?.error || data?.message || "Erro na consulta de CPF."
       });
     }
 
-    const normalized = normalizeApiResponse(data);
+    const normalized = normalizarCPF(data);
 
     if (!normalized.dadosBasicos.nascimento) {
       return res.status(404).json({
         error: "Não foi possível obter a data de nascimento.",
+        recebido: data
       });
     }
 
     return res.status(200).json(normalized);
   } catch (err) {
-    clearTimeout(timeout);
-
-    if (err.name === "AbortError") {
-      return res.status(504).json({
-        error: "Tempo limite excedido na consulta de CPF.",
-      });
-    }
-
     return res.status(500).json({
       error: "Erro interno ao consultar CPF.",
+      detalhe: err.message
     });
   }
 }
