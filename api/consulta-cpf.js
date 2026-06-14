@@ -1,13 +1,9 @@
 // api/consulta-cpf.js
-// Backend seguro para Vercel.
-// Coloque este arquivo em: /api/consulta-cpf.js
+// Rota backend para Vercel.
+// Coloque este arquivo exatamente em: /api/consulta-cpf.js
 //
-// Este endpoint NÃO consulta base externa de CPF e NÃO retorna dados pessoais.
-// Ele apenas valida o formato e os dígitos verificadores do CPF.
-//
-// Uso no front:
-// GET  /api/consulta-cpf?cpf=00000000000
-// POST /api/consulta-cpf  body: { "cpf": "00000000000" }
+// Esta versão valida CPF sem expor token no front-end e sem retornar dados pessoais.
+// O index.html chama: /api/consulta-cpf?cpf=00000000000
 
 function onlyDigits(value = "") {
   return String(value).replace(/\D/g, "");
@@ -40,24 +36,20 @@ function isValidCpf(cpf) {
 }
 
 export default async function handler(req, res) {
-  // CORS básico, caso o front esteja em outro domínio.
   res.setHeader("Access-Control-Allow-Origin", process.env.ALLOWED_ORIGIN || "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
+  if (req.method === "OPTIONS") return res.status(204).end();
 
-  if (!["GET", "POST"].includes(req.method)) {
+  if (req.method !== "GET") {
     return res.status(405).json({
       ok: false,
-      error: "Método não permitido. Use GET ou POST."
+      error: "Método não permitido. Use GET."
     });
   }
 
-  const rawCpf = req.method === "GET" ? req.query.cpf : req.body?.cpf;
-  const cpf = onlyDigits(rawCpf);
+  const cpf = onlyDigits(req.query.cpf);
 
   if (!cpf) {
     return res.status(400).json({

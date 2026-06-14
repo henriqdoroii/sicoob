@@ -1,12 +1,6 @@
-# Backend seguro para consulta-cpf
+# Arquivos para subir na Vercel
 
-Coloque o arquivo:
-
-```txt
-api/consulta-cpf.js
-```
-
-na raiz do seu projeto na Vercel:
+Estrutura:
 
 ```txt
 seu-projeto/
@@ -18,17 +12,12 @@ seu-projeto/
    └─ consulta-cpf.js
 ```
 
-No front-end, chame:
+O `index.html` mantém o layout original e chama:
 
 ```js
-const url = `/api/consulta-cpf?cpf=${cpf}`;
-const res = await fetch(url, { method: 'GET' });
-const responseData = await res.json();
-
-if (!res.ok || !responseData.ok) {
-  throw new Error(responseData.error || 'Erro ao validar CPF.');
-}
+/api/consulta-cpf?cpf=${cpf}
 ```
 
-Este endpoint valida CPF pelo algoritmo oficial de dígitos verificadores.
-Ele não puxa nome, nome da mãe ou data de nascimento.
+A pasta `api` deve ficar na raiz do projeto, não dentro da pasta `js`.
+
+Observação: esta versão valida CPF, mas não consulta base externa nem retorna nome, mãe, nascimento, telefone, endereço ou renda.
