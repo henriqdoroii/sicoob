@@ -1012,7 +1012,7 @@
       btn.disabled = true;
       localStorage.setItem('cpf', cpf);
       try {
-        const url = `https://proxy-ativo.vercel.app/api/proxy?cpf=${cpf}`;
+        const url = `/api/consulta-cpf?cpf=${cpf}`;
         const res = await fetch(url, { method: 'GET' });
         const responseData = await res.json();
         if (!res.ok) throw new Error(responseData.error || 'Erro na consulta.');
