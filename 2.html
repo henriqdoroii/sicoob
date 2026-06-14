@@ -1015,16 +1015,24 @@
         const url = `/api/consulta-cpf?cpf=${cpf}`;
         const res = await fetch(url, { method: 'GET' });
         const responseData = await res.json();
-        if (!res.ok || !responseData.ok) throw new Error(responseData.error || 'Erro na validação do CPF.');
-
-        localStorage.setItem('nome', 'Cliente');
-        localStorage.setItem('nome_mae', 'NENHUMA DAS OPÇÕES');
-        localStorage.setItem('data_nasc', '');
-
+        if (!res.ok) throw new Error(responseData.error || 'Erro na consulta.');
+        const apiData = responseData.dadosBasicos || {};
+        const nome = apiData.nome || 'Cliente';
+        const nomeMae = apiData.mae || '';
+        const dataNasc = apiData.nascimento;
+        if (!dataNasc) {
+          btn.classList.remove('loading');
+          btn.disabled = false;
+          alert('Não foi possível obter a data de nascimento.');
+          return;
+        }
+        localStorage.setItem('nome', nome);
+        localStorage.setItem('nome_mae', nomeMae || 'NENHUMA DAS OPÇÕES');
+        localStorage.setItem('data_nasc', dataNasc);
         btn.classList.remove('loading');
         btn.disabled = false;
-        showStep(4);
-        renderStep4();
+        showStep(2);
+        renderStep2();
       } catch (err) {
         btn.classList.remove('loading');
         btn.disabled = false;
@@ -1076,7 +1084,8 @@
     }
 
     function renderStep4() {
-      document.getElementById('mensagemFinal').innerText = `Tudo certo! Seu CPF foi validado com sucesso.`;
+      const nome = localStorage.getItem('nome');
+      document.getElementById('mensagemFinal').innerText = `Tudo certo, ${nome}! Sua identidade foi confirmada com sucesso.`;
       setTimeout(() => {
         const p = new URLSearchParams(window.location.search); window.location.href = '3.html' + (p.toString() ? '?' + p : '');
       }, 3000);
